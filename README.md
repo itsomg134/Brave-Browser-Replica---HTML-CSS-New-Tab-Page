@@ -96,13 +96,17 @@ Contributions are welcome! Feel free to:
 4. Push to the branch (`git push origin feature/AmazingFeature`)
 5. Open a Pull Request
 
-##  License
+## 📧 Contact
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+Om Gedam
 
-##  Acknowledgments
+GitHub: @itsomg134
 
-- Inspired by [Brave Browser](https://brave.com/)
-- Icons by [Font Awesome](https://fontawesome.com/)
-- Design replica for educational purposes
+Email: omgedam123098@gmail.com
+
+Twitter (X): @omgedam
+
+LinkedIn: Om Gedam
+
+Portfolio: https://ogworks.lovable.app
 
