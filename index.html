@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Brave browser · replica (light)</title>
+  <!-- Font Awesome 6 (free) for icons similar to Brave interface -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+    }
+
+    body {
+      background: linear-gradient(145deg, #f0f2f5 0%, #e9ecf0 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+
+    /* main browser window – like a Brave card */
+    .browser-window {
+      width: 100%;
+      max-width: 1280px;
+      height: 820px;
+      background-color: #ffffff;
+      border-radius: 28px 28px 24px 24px;
+      box-shadow: 0 25px 60px -10px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(0, 0, 0, 0.05);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      backdrop-filter: blur(2px);
+      transition: all 0.2s ease;
+    }
+
+    /* traffic lights + title bar (macOS style, but Brave uses similar) */
+    .brave-title-bar {
+      background: #e7eaef; /* subtle grey like Brave top bar */
+      padding: 12px 16px 8px 16px;
+      display: flex;
+      align-items: center;
+      border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+      flex-shrink: 0;
+    }
+
+    .window-controls {
+      display: flex;
+      gap: 8px;
+      margin-right: 16px;
+    }
+
+    .window-dot {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background-color: #cdd2da;
+      transition: background 0.2s;
+    }
+
+    .window-dot.red { background-color: #fe5f57; }
+    .window-dot.yellow { background-color: #febc2e; }
+    .window-dot.green { background-color: #2ac840; }
+
+    /* fake url bar – looks like Brave combined address + search */
+    .url-bar {
+      flex: 1;
+      background: #ffffff;
+      border-radius: 24px;
+      padding: 8px 18px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.05), inset 0 0 0 1px rgba(0,0,0,0.02);
+      border: 1px solid #d0d6df;
+    }
+
+    .lock-icon {
+      font-size: 14px;
+      color: #5e6a7d;
+      width: 20px;
+      text-align: center;
+    }
+
+    .url-text {
+      flex: 1;
+      font-size: 15px;
+      font-weight: 400;
+      color: #1d2b3f;
+      letter-spacing: -0.1px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .url-text i {
+      color: #6d7a8e;
+      margin-right: 6px;
+      font-size: 13px;
+    }
+
+    .url-text span {
+      color: #1d2b3f;
+    }
+
+    .url-actions {
+      display: flex;
+      gap: 16px;
+      color: #606c80;
+      font-size: 15px;
+    }
+
+    .url-actions i {
+      cursor: default;
+    }
+
+    /* brave icon inside url (fake brave icon) */
+    .brave-mini {
+      background: #fb542b; /* brave orange */
+      width: 22px;
+      height: 22px;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 14px;
+      font-weight: 600;
+      margin-right: 4px;
+    }
+
+    /* extensions area */
+    .extension-icons {
+      display: flex;
+      margin-left: 12px;
+      gap: 12px;
+      color: #3f4b60;
+      font-size: 18px;
+    }
+
+    /* main content – new tab page with background + widgets */
+    .new-tab-content {
+      flex: 1;
+      background: #fbfcff; /* light background like Brave new tab */
+      padding: 24px 32px 32px 32px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      scrollbar-width: thin;
+      scrollbar-color: #bcc4d0 #f0f2f6;
+    }
+
+    .new-tab-content::-webkit-scrollbar {
+      width: 8px;
+    }
+    .new-tab-content::-webkit-scrollbar-track {
+      background: #f0f2f6;
+    }
+    .new-tab-content::-webkit-scrollbar-thumb {
+      background-color: #bcc4d0;
+      border-radius: 8px;
+    }
+
+    /* top cards: brave stats / rewards card (like brave NTP) */
+    .stats-grid {
+      display: flex;
+      gap: 24px;
+      margin-bottom: 40px;
+      flex-wrap: wrap;
+    }
+
+    .stats-card {
+      background: #ffffff;
+      border-radius: 24px;
+      padding: 20px 24px;
+      box-shadow: 0 6px 14px rgba(0, 0, 0, 0.02), 0 1px 3px rgba(0,0,0,0.03);
+      border: 1px solid #eef1f5;
+      flex: 1 1 240px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      transition: all 0.1s ease;
+    }
+
+    .stats-icon {
+      width: 48px;
+      height: 48px;
+      background: linear-gradient(145deg, #f1511e, #fc6f42);
+      border-radius: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 24px;
+    }
+
+    .stats-icon.purple {
+      background: linear-gradient(145deg, #7f4fbf, #a07df0);
+    }
+
+    .stats-icon.green {
+      background: linear-gradient(145deg, #1f8b6e, #2db18d);
+    }
+
+    .stats-info h3 {
+      font-size: 28px;
+      font-weight: 600;
+      color: #141f33;
+      line-height: 1.1;
+    }
+
+    .stats-info p {
+      color: #67768f;
+      font-weight: 450;
+      font-size: 15px;
+    }
+
+    /* brave revenue / ads card (tiny) */
+    .brave-creators {
+      background: #ffffff;
+      border-radius: 24px;
+      border: 1px solid #eef1f5;
+      padding: 18px 26px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 32px;
+      flex-wrap: wrap;
+      gap: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+    }
+
+    .creators-left {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .bat-icon {
+      background: #ff5500;
+      width: 38px;
+      height: 38px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 20px;
+    }
+
+    .creators-text {
+      font-weight: 500;
+      color: #1f2b3e;
+    }
+
+    .creators-text small {
+      color: #7b8aa4;
+      font-weight: 400;
+      font-size: 14px;
+      display: block;
+    }
+
+    .tip-button {
+      background-color: #f2f4f8;
+      border: 1px solid #dde3ec;
+      padding: 10px 24px;
+      border-radius: 30px;
+      font-weight: 600;
+      font-size: 14px;
+      color: #1d2b3f;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: 0.1s;
+      cursor: default;
+    }
+
+    .tip-button i {
+      color: #ff7d4a;
+    }
+
+    /* favourite tiles / top sites (like brave new tab) */
+    .section-label {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin: 8px 0 16px 0;
+    }
+
+    .section-label h2 {
+      font-size: 18px;
+      font-weight: 600;
+      color: #1d2b3f;
+      letter-spacing: -0.2px;
+    }
+
+    .section-label a {
+      color: #ff7d4a;
+      font-size: 15px;
+      font-weight: 500;
+      text-decoration: none;
+      cursor: default;
+    }
+
+    .top-sites {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+      gap: 16px;
+      margin-bottom: 40px;
+    }
+
+    .site-tile {
+      background: transparent;
+      border-radius: 20px;
+      padding: 12px 4px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      transition: background 0.1s;
+      cursor: default;
+    }
+
+    .site-tile:hover {
+      background: #eef2f8;
+    }
+
+    .tile-icon {
+      width: 56px;
+      height: 56px;
+      background: #ffffff;
+      border-radius: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      color: #2f3c54;
+      border: 1px solid #e3e8f0;
+      margin-bottom: 8px;
+      box-shadow: 0 4px 8px -2px rgba(0,0,0,0.02);
+    }
+
+    .tile-name {
+      font-size: 13px;
+      font-weight: 500;
+      color: #30405c;
+      max-width: 80px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* brave news / cards section */
+    .brave-news-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin: 16px 0 20px 0;
+    }
+
+    .brave-news-header h3 {
+      font-size: 20px;
+      font-weight: 600;
+      color: #111c2e;
+    }
+
+    .news-badge {
+      background: #ff5722;
+      color: white;
+      border-radius: 30px;
+      padding: 4px 14px;
+      font-size: 13px;
+      font-weight: 500;
+      letter-spacing: 0.3px;
+    }
+
+    .news-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 18px;
+      margin-top: 8px;
+    }
+
+    .news-card {
+      background: #ffffff;
+      border-radius: 22px;
+      border: 1px solid #e9edf4;
+      padding: 20px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+    }
+
+    .news-source {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    .source-icon {
+      width: 26px;
+      height: 26px;
+      background: #ddd;
+      border-radius: 8px;
+      background-size: cover;
+      background-position: center;
+    }
+
+    .source-name {
+      font-weight: 600;
+      color: #2b3a54;
+      font-size: 14px;
+    }
+
+    .news-title {
+      font-weight: 600;
+      font-size: 16px;
+      line-height: 1.4;
+      color: #0b1a32;
+      margin-bottom: 10px;
+    }
+
+    .news-desc {
+      color: #5b6b86;
+      font-size: 14px;
+      line-height: 1.5;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    /* brave bottom bar – optional, like brave status */
+    .brave-footer {
+      margin-top: 28px;
+      padding-top: 16px;
+      border-top: 1px solid #eef2f8;
+      display: flex;
+      justify-content: space-between;
+      color: #7b89a2;
+      font-size: 14px;
+    }
+
+    .footer-links {
+      display: flex;
+      gap: 32px;
+    }
+
+    .footer-links span {
+      cursor: default;
+    }
+
+    .footer-links i {
+      margin-right: 6px;
+      color: #fe7940;
+    }
+
+    /* micro interactions (non functional but look real) */
+    .fake-click {
+      cursor: default;
+    }
+
+    /* brave specific tweaks */
+    .brave-orange {
+      color: #ff6b3d;
+    }
+
+    .browser-window .url-bar .brave-mini {
+      background: #ff5e2b;
+      font-size: 15px;
+    }
+  </style>
+</head>
+<body>
+  <!-- main brave-like window -->
+  <div class="browser-window">
+    <!-- title bar with window dots and brave url bar -->
+    <div class="brave-title-bar">
+      <div class="window-controls">
+        <span class="window-dot red"></span>
+        <span class="window-dot yellow"></span>
+        <span class="window-dot green"></span>
+      </div>
+      <!-- URL bar exactly like Brave (search + brave icon) -->
+      <div class="url-bar">
+        <div class="brave-mini">
+          <i class="fas fa-bolt" style="font-size: 13px;"></i>
+        </div>
+        <span class="lock-icon"><i class="fas fa-lock"></i></span>
+        <div class="url-text">
+          <i class="fas fa-globe"></i>
+          <span>brave.com/newtab</span>
+        </div>
+        <div class="url-actions">
+          <i class="far fa-star"></i>
+          <i class="fas fa-qrcode"></i>
+          <i class="fas fa-microphone"></i>
+        </div>
+      </div>
+      <!-- extensions area -->
+      <div class="extension-icons">
+        <i class="fas fa-puzzle-piece"></i>
+        <i class="fas fa-shield-alt"></i>
+        <i class="fas fa-bolt" style="color:#ff6d3d;"></i>
+        <i class="fas fa-wallet"></i>
+      </div>
+    </div>
+
+    <!-- main new tab content (like Brave NTP) -->
+    <div class="new-tab-content">
+
+      <!-- stats cards (Brave shields / rewards / time) -->
+      <div class="stats-grid">
+        <div class="stats-card">
+          <div class="stats-icon"><i class="fas fa-shield-alt"></i></div>
+          <div class="stats-info">
+            <h3>5.2k</h3>
+            <p>trackers blocked</p>
+          </div>
+        </div>
+        <div class="stats-card">
+          <div class="stats-icon purple"><i class="fas fa-clock"></i></div>
+          <div class="stats-info">
+            <h3>18m</h3>
+            <p>time saved</p>
+          </div>
+        </div>
+        <div class="stats-card">
+          <div class="stats-icon green"><i class="fas fa-coins"></i></div>
+          <div class="stats-info">
+            <h3>2.5 BAT</h3>
+            <p>estimated earnings</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Brave creators / tipping card (like brave news) -->
+      <div class="brave-creators">
+        <div class="creators-left">
+          <span class="bat-icon"><i class="fas fa-bat"></i></span>
+          <div class="creators-text">
+            Brave Creators <small>Support your favorite sites</small>
+          </div>
+        </div>
+        <div class="tip-button">
+          <i class="fas fa-gift"></i> Monthly tip
+        </div>
+      </div>
+
+      <!-- top sites section (frecency) -->
+      <div class="section-label">
+        <h2><i class="fas fa-thumbtack brave-orange" style="margin-right: 8px;"></i>Favourite sites</h2>
+        <a href="#"><i class="fas fa-pen"></i> edit</a>
+      </div>
+
+      <div class="top-sites">
+        <div class="site-tile">
+          <div class="tile-icon"><i class="fab fa-github"></i></div>
+          <span class="tile-name">GitHub</span>
+        </div>
+        <div class="site-tile">
+          <div class="tile-icon"><i class="fab fa-youtube" style="color:#ff0000;"></i></div>
+          <span class="tile-name">YouTube</span>
+        </div>
+        <div class="site-tile">
+          <div class="tile-icon"><i class="fab fa-twitter" style="color:#1D9BF0;"></i></div>
+          <span class="tile-name">Twitter</span>
+        </div>
+        <div class="site-tile">
+          <div class="tile-icon"><i class="fab fa-reddit-alien" style="color:#ff4500;"></i></div>
+          <span class="tile-name">Reddit</span>
+        </div>
+        <div class="site-tile">
+          <div class="tile-icon"><i class="fab fa-discord" style="color:#5865F2;"></i></div>
+          <span class="tile-name">Discord</span>
+        </div>
+        <div class="site-tile">
+          <div class="tile-icon"><i class="fas fa-globe"></i></div>
+          <span class="tile-name">Wikipedia</span>
+        </div>
+        <div class="site-tile">
+          <div class="tile-icon"><i class="fab fa-figma"></i></div>
+          <span class="tile-name">Figma</span>
+        </div>
+        <div class="site-tile">
+          <div class="tile-icon"><i class="fab fa-amazon"></i></div>
+          <span class="tile-name">Amazon</span>
+        </div>
+      </div>
+
+      <!-- Brave News section (exactly like brave new tab) -->
+      <div class="brave-news-header">
+        <h3>Brave News <span class="news-badge">LATEST</span></h3>
+        <span style="margin-left: auto; color:#ff6b3d;"><i class="fas fa-rss"></i> 12 new</span>
+      </div>
+
+      <div class="news-grid">
+        <div class="news-card">
+          <div class="news-source">
+            <div class="source-icon" style="background-image: url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22%23555%22><circle cx=%2212%22 cy=%2212%22 r=%2212%22 fill=%22%23ff7e4a%22 /></svg>'); background-color: #ff7e4a;"></div>
+            <span class="source-name">Brave · 2h ago</span>
+          </div>
+          <div class="news-title">Brave introduces vertical tabs in Nightly</div>
+          <div class="news-desc">Improved tab management with vertical sidebar and tab groups.</div>
+        </div>
+        <div class="news-card">
+          <div class="news-source">
+            <div class="source-icon" style="background-image: url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22%23555%22><rect width=%2224%22 height=%2224%22 fill=%22%23007aff%22 /></svg>'); background-color: #007aff;"></div>
+            <span class="source-name">TechCrunch · 5h ago</span>
+          </div>
+          <div class="news-title">Brave Search reaches 99% independence</div>
+          <div class="news-desc">The privacy-focused search engine now serves mostly its own index.</div>
+        </div>
+        <div class="news-card">
+          <div class="news-source">
+            <div class="source-icon" style="background-image: url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22%23555%22><circle cx=%2212%22 cy=%2212%22 r=%2212%22 fill=%22%2334a853%22 /></svg>'); background-color: #34a853;"></div>
+            <span class="source-name">Android Police · 1d ago</span>
+          </div>
+          <div class="news-title">Brave for Android adds playlist and more</div>
+          <div class="news-desc">Background video playback and media hub arrive on mobile.</div>
+        </div>
+      </div>
+
+      <!-- subtle footer (like brave links) -->
+      <div class="brave-footer">
+        <div class="footer-links">
+          <span><i class="fas fa-shield"></i> Shields up</span>
+          <span><i class="fas fa-bolt"></i> Rewards</span>
+          <span><i class="fas fa-wallet"></i> Wallet</span>
+          <span><i class="fas fa-play"></i> Playlist</span>
+        </div>
+        <div class="footer-links">
+          <span><i class="far fa-clock"></i> 15 min</span>
+          <span><i class="fas fa-download"></i> 2 updates</span>
+        </div>
+      </div>
+    </div> <!-- end new-tab-content -->
+  </div> <!-- end browser-window -->
+</body>
+</html>
