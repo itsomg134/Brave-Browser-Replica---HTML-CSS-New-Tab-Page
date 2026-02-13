@@ -36,6 +36,8 @@ No special prerequisites! This is a pure HTML/CSS project that runs in any moder
    - Simply open `index.html` in your preferred browser
    - Or use a local development server (e.g., Live Server for VS Code)
 
+<img width="1887" height="1060" alt="image" src="https://github.com/user-attachments/assets/e53628ac-7cec-465e-8df2-6c3691d8ea7c" />
+
 ##  Customization
 
 ### Colors
